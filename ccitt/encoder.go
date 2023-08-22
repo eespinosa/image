@@ -26,7 +26,6 @@ func (w *writer) Write(p []byte) (int, error) {
 	// until currPosition == width, then encode row
 	writtenBytes := 0
 	n := 0
-	rowsWritten := 0
 	for _, b := range p {
 		// Convert from gray to black (0xFF) or white (0x00)
 		pixel := byte(0xFF)
@@ -48,7 +47,6 @@ func (w *writer) Write(p []byte) (int, error) {
 			writtenBytes += n
 			w.currPosition = 0
 			n = 0
-			rowsWritten += 1
 		}
 	}
 
