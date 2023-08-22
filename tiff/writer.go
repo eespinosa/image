@@ -12,6 +12,8 @@ import (
 	"image"
 	"io"
 	"sort"
+
+	"golang.org/x/image/ccitt"
 )
 
 // The TIFF format allows to choose the order of the different elements freely.
@@ -339,6 +341,13 @@ func Encode(w io.Writer, m image.Image, opt *Options) error {
 		}
 	case cDeflate:
 		dst = zlib.NewWriter(&buf)
+	case cG4:
+		switch m.(type) {
+		case *image.Gray:
+			dst = ccitt.NewGroup4Encoder(&buf, d.X)
+		default:
+			return errors.New("tiff: unsupported image type for ccitt group 4 compression")
+		}
 	default:
 		return errors.New("tiff: unsupported compression")
 	}
@@ -370,6 +379,10 @@ func Encode(w io.Writer, m image.Image, opt *Options) error {
 		photometricInterpretation = pBlackIsZero
 		samplesPerPixel = 1
 		bitsPerSample = []uint32{8}
+		if compression == cG4 {
+			photometricInterpretation = pWhiteIsZero
+			bitsPerSample = []uint32{1}
+		}
 		err = encodeGray(dst, m.Pix, d.X, d.Y, m.Stride, predictor)
 	case *image.Gray16:
 		photometricInterpretation = pBlackIsZero

@@ -25,6 +25,7 @@ var roundtripTests = []struct {
 	{"video-001.tiff", &Options{Predictor: true}},
 	{"video-001.tiff", &Options{Compression: Deflate}},
 	{"video-001.tiff", &Options{Predictor: true, Compression: Deflate}},
+	{"bw-gopher_ccittGroup4.tiff", &Options{Compression: cG4}},
 }
 
 func openImage(filename string) (image.Image, error) {

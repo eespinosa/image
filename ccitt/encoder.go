@@ -2,9 +2,83 @@ package ccitt
 
 import (
 	"bytes"
+	"io"
 )
 
 var eofbCode = bitString{0x1001, 24}
+
+type writer struct {
+	bw bitWriter
+
+	width int
+
+	curr []byte
+	prev []byte
+
+	// currPosition keeps track of the last position
+	// written to curr. When it reaches width, we can encode
+	// the row.
+	currPosition int
+}
+
+func (w *writer) Write(p []byte) (int, error) {
+	// for each byte in p write byte to curr[currPosition]
+	// until currPosition == width, then encode row
+	writtenBytes := 0
+	n := 0
+	rowsWritten := 0
+	for _, b := range p {
+		// Convert from gray to black (0xFF) or white (0x00)
+		pixel := byte(0xFF)
+		if (b & 0x80) != 0x00 {
+			pixel = byte(0x00)
+		}
+		w.curr[w.currPosition] = pixel
+		n += 1
+		w.currPosition += 1
+
+		if w.currPosition == w.width {
+			err := encodeRow(w.curr, w.prev, &w.bw)
+			if err != nil {
+				return writtenBytes, err
+			}
+			w.prev = w.curr[:]
+			w.curr = make([]byte, w.width)
+			// Update actual bytes written to wrapped writer
+			writtenBytes += n
+			w.currPosition = 0
+			n = 0
+			rowsWritten += 1
+		}
+	}
+
+	return writtenBytes, nil
+}
+
+func (w *writer) Flush() error {
+	err := w.bw.flushBits()
+	return err
+}
+
+func (w *writer) Close() error {
+	// output end of facsimile block code
+	err := w.bw.writeCode(eofbCode)
+	if err != nil {
+		return err
+	}
+
+	return w.bw.close()
+}
+
+func NewGroup4Encoder(w io.Writer, width int) *writer {
+	return &writer{
+		bw:           bitWriter{w: w, order: MSB},
+		width:        width,
+		prev:         make([]byte, width),
+		curr:         make([]byte, width),
+		currPosition: 0,
+	}
+}
 
 func EncodeGroup4(width, height int, pixels []byte, aligned bool) ([]byte, error) {
 	var bb bytes.Buffer
