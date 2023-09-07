@@ -40,12 +40,12 @@ func TestEncode(t *testing.T) {
 			rowPix = rowPix[:width]
 			var rowBytes []byte
 
-			// change from grayscale to 0x00 and 0xFF
+			// change from grayscale to 0x00 (black) and 0xFF (white)
 			for _, pixel := range rowPix {
 				if (pixel & 0x80) != 0x00 {
-					rowBytes = append(rowBytes, 0x00)
+					rowBytes = append(rowBytes, colorWhite)
 				} else {
-					rowBytes = append(rowBytes, 0xFF)
+					rowBytes = append(rowBytes, colorBlack)
 				}
 			}
 
